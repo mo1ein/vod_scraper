@@ -6,91 +6,120 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-	initial = True
+    initial = True
 
-	dependencies = [
-	]
+    dependencies = []
 
-	operations = [
-		migrations.CreateModel(
-			name='Genre',
-			fields=[
-				('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-				('name', models.CharField(max_length=100, unique=True)),
-				('created_at', models.DateTimeField(null=False, auto_now_add=True)),
-			],
-			options={
-				'db_table': 'genres',
-			},
-		),
-		migrations.CreateModel(
-			name='Movie',
-			fields=[
-				('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-				('title', models.CharField(db_index=True, max_length=500)),
-				('year', models.IntegerField(db_index=True, validators=[django.core.validators.MinValueValidator(1900),
-																		django.core.validators.MaxValueValidator(
-																			2030)])),
-				('type',
-				 models.CharField(choices=[('movie', 'Movie'), ('series', 'Series')], db_index=True, default='movie',
-								  max_length=10)),
-				('created_at', models.DateTimeField(null=False, auto_now_add=True)),
-				('updated_at', models.DateTimeField(blank=True, null=True)),
-				('genres', models.ManyToManyField(db_table='movie_genres', related_name='movies', to='catalog.genre')),
-			],
-			options={
-				'db_table': 'movies',
-			},
-		),
-		migrations.CreateModel(
-			name='Credit',
-			fields=[
-				('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-				('role',
-				 models.CharField(choices=[('director', 'Director'), ('producer', 'Producer'), ('actor', 'Actor')],
-								  max_length=20)),
-				('name', models.CharField(max_length=200)),
-				('character_name', models.CharField(blank=True, max_length=200)),
-				('order', models.PositiveIntegerField(default=0)),
-				('created_at', models.DateTimeField(blank=True, null=True)),
-				('movie', models.ForeignKey(db_column='movie_id', on_delete=django.db.models.deletion.CASCADE,
-											related_name='credits', to='catalog.movie')),
-			],
-			options={
-				'db_table': 'credits',
-				'ordering': ['role', 'order'],
-			},
-		),
-		migrations.CreateModel(
-			name='Source',
-			fields=[
-				('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-				('movie', models.ForeignKey(db_column='movie_id', on_delete=django.db.models.deletion.CASCADE,
-											related_name='sources', to='catalog.movie')),
-				('platform', models.CharField(choices=[('filimo', 'Filimo'), ('namava', 'Namava')], max_length=20)),
-				('source_id', models.CharField(max_length=200)),
-				('url', models.URLField(blank=True)),
-				('raw_payload', models.JSONField(blank=True, null=True)),
-				('created_at', models.DateTimeField(null=False, auto_now_add=True)),
-			],
-			options={
-				'db_table': 'sources',
-			},
-		),
-		migrations.AddIndex(
-			model_name='movie',
-			index=models.Index(fields=['year', 'type'], name='movies_year_53e6e4_idx'),
-		),
-		migrations.AddIndex(
-			model_name='movie',
-			index=models.Index(fields=['title'], name='movies_title_179e04_idx'),
-		),
-		migrations.AddConstraint(
-			model_name='movie',
-			constraint=models.UniqueConstraint(fields=('title', 'year'), name='unique_title_year'),
-		),
-		migrations.AlterUniqueTogether(
-			name='source',
-			unique_together={('platform', 'source_id')},
-		),
-	]
+    operations = [
+        migrations.CreateModel(
+            name="Genre",
+            fields=[
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("name", models.CharField(max_length=100, unique=True)),
+                ("created_at", models.DateTimeField(null=False, auto_now_add=True)),
+            ],
+            options={
+                "db_table": "genres",
+            },
+        ),
+        migrations.CreateModel(
+            name="Movie",
+            fields=[
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("title", models.CharField(db_index=True, max_length=500)),
+                (
+                    "year",
+                    models.IntegerField(
+                        db_index=True,
+                        validators=[
+                            django.core.validators.MinValueValidator(1900),
+                            django.core.validators.MaxValueValidator(2030),
+                        ],
+                    ),
+                ),
+                (
+                    "type",
+                    models.CharField(
+                        choices=[("movie", "Movie"), ("series", "Series")],
+                        db_index=True,
+                        default="movie",
+                        max_length=10,
+                    ),
+                ),
+                ("created_at", models.DateTimeField(null=False, auto_now_add=True)),
+                ("updated_at", models.DateTimeField(blank=True, null=True)),
+                ("genres", models.ManyToManyField(db_table="movie_genres", related_name="movies", to="catalog.genre")),
+            ],
+            options={
+                "db_table": "movies",
+            },
+        ),
+        migrations.CreateModel(
+            name="Credit",
+            fields=[
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                (
+                    "role",
+                    models.CharField(
+                        choices=[("director", "Director"), ("producer", "Producer"), ("actor", "Actor")], max_length=20
+                    ),
+                ),
+                ("name", models.CharField(max_length=200)),
+                ("character_name", models.CharField(blank=True, max_length=200)),
+                ("order", models.PositiveIntegerField(default=0)),
+                ("created_at", models.DateTimeField(blank=True, null=True)),
+                (
+                    "movie",
+                    models.ForeignKey(
+                        db_column="movie_id",
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="credits",
+                        to="catalog.movie",
+                    ),
+                ),
+            ],
+            options={
+                "db_table": "credits",
+                "ordering": ["role", "order"],
+            },
+        ),
+        migrations.CreateModel(
+            name="Source",
+            fields=[
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                (
+                    "movie",
+                    models.ForeignKey(
+                        db_column="movie_id",
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="sources",
+                        to="catalog.movie",
+                    ),
+                ),
+                ("platform", models.CharField(choices=[("filimo", "Filimo"), ("namava", "Namava")], max_length=20)),
+                ("source_id", models.CharField(max_length=200)),
+                ("url", models.URLField(blank=True)),
+                ("raw_payload", models.JSONField(blank=True, null=True)),
+                ("created_at", models.DateTimeField(null=False, auto_now_add=True)),
+            ],
+            options={
+                "db_table": "sources",
+            },
+        ),
+        migrations.AddIndex(
+            model_name="movie",
+            index=models.Index(fields=["year", "type"], name="movies_year_53e6e4_idx"),
+        ),
+        migrations.AddIndex(
+            model_name="movie",
+            index=models.Index(fields=["title"], name="movies_title_179e04_idx"),
+        ),
+        migrations.AddConstraint(
+            model_name="movie",
+            constraint=models.UniqueConstraint(fields=("title", "year"), name="unique_title_year"),
+        ),
+        migrations.AlterUniqueTogether(
+            name="source",
+            unique_together={("platform", "source_id")},
+        ),
+    ]

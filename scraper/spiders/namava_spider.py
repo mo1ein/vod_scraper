@@ -1,15 +1,17 @@
-import scrapy
 import logging
+from typing import ClassVar
+
+import scrapy
 
 logger = logging.getLogger(__name__)
+
 
 class NamavaSpider(scrapy.Spider):
     name = "namava"
     allowed_domains = ["namava.ir"]
-    custom_settings = {
-        # Use simple pipeline instead of JSON files
+    custom_settings: ClassVar[dict] = {
         "ITEM_PIPELINES": {
-            'scraper.pipelines.PostgreSQLPipeline': 300,
+            "scraper.pipelines.PostgreSQLPipeline": 300,
         },
         "DEFAULT_REQUEST_HEADERS": {
             "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
@@ -23,7 +25,7 @@ class NamavaSpider(scrapy.Spider):
     }
 
     # You can set this limit before running the spider
-    max_pages = 2  
+    max_pages = 2
 
     page_index = 1
     page_size = 20
@@ -44,8 +46,9 @@ class NamavaSpider(scrapy.Spider):
             movie_id = movie.get("id")
             caption = movie.get("caption")
             preview_url = f"https://www.namava.ir/api/v1.0/medias/{movie_id}/preview"
-            yield scrapy.Request(preview_url, callback=self.parse_movie,
-                                 meta={"source_id": movie_id, "base_title": caption})
+            yield scrapy.Request(
+                preview_url, callback=self.parse_movie, meta={"source_id": movie_id, "base_title": caption}
+            )
 
         # Pagination with limit check
         if len(movies) == self.page_size and self.page_index < self.max_pages:
@@ -85,7 +88,5 @@ class NamavaSpider(scrapy.Spider):
             "raw_data": result,  # Store full parsed data
         }
 
-
     def _latest_movies_url(self, page, size):
         return f"https://www.namava.ir/api/v1.0/medias/latest-movies?pi={page}&ps={size}"
-
