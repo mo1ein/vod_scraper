@@ -1,0 +1,15 @@
+python-dotenv
+Django>=4.2
+djangorestframework
+scrapy
+scrapy-playwright
+playwright
+requests
+beautifulsoup4
+psycopg2-binary
+rapidfuzz
+python-dotenv
+redis==4.5.4
+django-redis==5.2.0
+itemadapter==0.8.0
+jellyfish

@@ -1,0 +1,68 @@
+FROM python:3.13-slim
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=off \
+    PIP_DISABLE_PIP_VERSION_CHECK=on \
+    DATABASE_URL=postgres://voduser:vodpass@db:5432/vod \
+    REDIS_URL=redis://redis:6379/0
+
+RUN apt-get update && apt-get install -y \
+    curl \
+    gcc \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+
+RUN chmod +x /app/deploy/scrap.sh
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD [ -x /app/deploy/scrap.sh ] || exit 1
+
+CMD ["/app/deploy/scrap.sh"]
+
+
+# FROM python:3.13-alpine
+#
+# ENV PYTHONUNBUFFERED=1 \
+#     PYTHONDONTWRITEBYTECODE=1 \
+#     PIP_NO_CACHE_DIR=off \
+#     PIP_DISABLE_PIP_VERSION_CHECK=on \
+#     # TODO: fix this
+#     DATABASE_URL=postgres://voduser:vodpass@db:5432/vod \
+#     REDIS_URL=redis://redis:6379/0 \
+#     DJANGO_SETTINGS_MODULE=api.vod.settings \
+#     DEBUG="false" \
+#     PYTHONPATH="/app"
+#
+# RUN apk add --no-cache \
+#     postgresql-dev \
+#     gcc \
+#     musl-dev
+#
+# WORKDIR /app
+#
+# COPY requirements.txt .
+#
+# ADD https://astral.sh/uv/install.sh /uv-install.sh
+# RUN sh /uv-install.sh && rm /uv-install.sh
+# ENV PATH="/root/.cargo/bin:$PATH"
+#
+# RUN uv pip install --no-cache-dir -r requirements.txt
+#
+# COPY . .
+#
+# RUN chmod +x /app/deploy/scrap.sh
+#
+# HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+#   CMD [ -x /app/deploy/scrap.sh ] || exit 1
+#
+# CMD ["/app/deploy/scrap.sh"]
+

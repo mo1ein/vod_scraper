@@ -1,0 +1,26 @@
+# .dockerignore
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+*.swp
+.Python
+.env
+env/
+venv/
+.venv/
+node_modules/
+dist/
+build/
+.git
+.gitignore
+Dockerfile*
+docker-compose*.yml
+*.db
+*.sqlite3
+*.log
+coverage/
+tests/
+docs/
+*.pem
+"VOD Scraper \342\200\224 Interview Task.pdf"                                                                                                                                                                                         

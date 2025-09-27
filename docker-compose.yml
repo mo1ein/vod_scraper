@@ -1,0 +1,108 @@
+
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: vod
+      POSTGRES_USER: voduser
+      POSTGRES_PASSWORD: vodpass
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U voduser -d vod"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - vod-network
+
+  redis:
+    image: redis:8.2-alpine
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - vod-network
+
+  web:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.api
+    volumes:
+      - ./:/app
+    working_dir: /app
+    ports:
+      - '8000:8000'
+    env_file:
+      - .env
+    environment:
+      PYTHONPATH: /app
+      DATABASE_URL: postgres://voduser:vodpass@db:5432/vod
+      REDIS_URL: redis://redis:6379/0
+      DJANGO_SETTINGS_MODULE: api.vod.settings
+      DEBUG: "false"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    networks:
+      - vod-network
+
+  scraper:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.scraper
+    env_file:
+      - .env
+    volumes:
+      - ./:/app
+    working_dir: /app
+    environment:
+      DATABASE_URL: postgres://voduser:vodpass@db:5432/vod
+      REDIS_URL: redis://redis:6379/0
+      DJANGO_SETTINGS_MODULE: api.vod.settings
+      # TODO: fix this time
+      SCRAPER_INTERVAL: "120"  # Run every hour
+      SCRAPER_ENABLED: "true"
+      PYTHONPATH: /app
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "ps aux | grep -q '[r]un_continuous' && exit 0 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - vod-network
+
+volumes:
+  pgdata:
+  redis_data:
+
+networks:
+  vod-network:
+    driver: bridge
