@@ -8,8 +8,8 @@ A sophisticated data pipeline that intelligently crawls multiple Video-on-Demand
 ```mermaid
 graph TB
     A[VOD Platform 1] --> B[Scrapy Spider]
-    C[VOD Platform 2] --> B
-    D[VOD Platform N] --> B
+    X[VOD Platform 2] --> B
+    Y[VOD Platform N] --> B
     
     B --> F[Content Matcher]
     F --> G[Redis]
