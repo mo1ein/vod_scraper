@@ -41,7 +41,7 @@ graph TB
 ---
 
 
-### 🔧 Run
+## 🔧 Run
 ```bash
 git clone https://github.com/mo1ein/vod_scraper.git
 cd vod_scraper
@@ -54,7 +54,7 @@ make up
 ```
 Now you can enjoy the app. <br />
 
-### 🌐 Endpoints
+## 🌐 Endpoints
 
 ```bash
 curl http://localhost:8000/movies/
