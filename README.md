@@ -20,7 +20,7 @@ graph TB
 
 
     PostgreSQL[(PostgreSQL)] --> I[Django REST API]
-    I --> J[Client Applications]
+    I --> J[Client]
     
     subgraph "Core match logic"
         F --> K[Exact Matching]
