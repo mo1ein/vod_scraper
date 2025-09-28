@@ -27,7 +27,8 @@ class Migration(migrations.Migration):
             fields=[
                 ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
                 ("title", models.CharField(db_index=True, max_length=500)),
-                (
+				("title_en", models.CharField(db_index=True, max_length=500)),
+				(
                     "year",
                     models.IntegerField(
                         db_index=True,
@@ -112,11 +113,11 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="movie",
-            index=models.Index(fields=["title"], name="movies_title_179e04_idx"),
+            index=models.Index(fields=["title", "title_en"], name="movies_title_179e04_idx"),
         ),
         migrations.AddConstraint(
             model_name="movie",
-            constraint=models.UniqueConstraint(fields=("title", "year"), name="unique_title_year"),
+            constraint=models.UniqueConstraint(fields=("title", "title_en", "year"), name="unique_title_year"),
         ),
         migrations.AlterUniqueTogether(
             name="source",

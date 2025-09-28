@@ -24,6 +24,7 @@ class Genre(models.Model):
 
 
 class Movie(models.Model):
+    title_en = models.CharField(max_length=500, db_index=True)
     title = models.CharField(max_length=500, db_index=True)
     year = models.IntegerField(validators=[MinValueValidator(1900), MaxValueValidator(2030)], db_index=True)
     type = models.CharField(max_length=10, choices=ContentType.choices, default=ContentType.MOVIE, db_index=True)
@@ -36,9 +37,8 @@ class Movie(models.Model):
         db_table = "movies"
         indexes = [
             models.Index(fields=["year", "type"]),
-            models.Index(fields=["title"]),
+            models.Index(fields=["title", "title_en"]),
         ]
-        constraints = [models.UniqueConstraint(fields=["title", "year"], name="unique_title_year")]
 
     def __str__(self):
         return f"{self.title} ({self.year})"
@@ -53,7 +53,7 @@ class Source(models.Model):
     created_at = models.DateTimeField(null=False, auto_now_add=True)
 
     class Meta:
-        db_table = "sources"  # Optional: if you want to rename this too
+        db_table = "sources"
         unique_together = ["platform", "source_id"]
 
     def __str__(self):

@@ -8,21 +8,7 @@ logger = logging.getLogger(__name__)
 
 class NamavaSpider(scrapy.Spider):
     name = "namava"
-    allowed_domains = ["namava.ir"]
-    custom_settings: ClassVar[dict] = {
-        "ITEM_PIPELINES": {
-            "scraper.pipelines.PostgreSQLPipeline": 300,
-        },
-        "DEFAULT_REQUEST_HEADERS": {
-            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
-            "Accept": "application/json, text/plain, */*",
-            "Referer": "https://www.namava.ir/",
-            "Accept-Language": "en-US,en;q=0.9,fa;q=0.8",
-        },
-        "DOWNLOAD_DELAY": 0.3,
-        "AUTOTHROTTLE_ENABLED": True,
-        "LOG_LEVEL": "INFO",
-    }
+    allowed_domains: ClassVar[tuple[str, ...]] = ("namava.ir",)
 
     # You can set this limit before running the spider
     max_pages = 2
@@ -34,7 +20,7 @@ class NamavaSpider(scrapy.Spider):
         url = self._latest_movies_url(self.page_index, self.page_size)
         yield scrapy.Request(url, callback=self.parse)
 
-    def parse(self, response):
+    def parse(self, response, **kwargs):
         data = response.json()
         movies = data.get("result", [])
 
@@ -60,7 +46,7 @@ class NamavaSpider(scrapy.Spider):
         data = response.json()
         result = data.get("result", {})
 
-        title = result.get("caption")  # Use caption as title
+        title = result.get("caption")
         year = result.get("year")
         if year:
             try:
@@ -85,7 +71,7 @@ class NamavaSpider(scrapy.Spider):
             "genres": genres,
             "source_id": source_id,
             "url": response.url,
-            "raw_data": result,  # Store full parsed data
+            "raw_data": result,
         }
 
     def _latest_movies_url(self, page, size):

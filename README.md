@@ -1,32 +1,104 @@
-# VOD Scraper — Interview Task (Postgres edition)
+# 🎬  VOD Scraper
 
-This repository is configured to use PostgreSQL by default (see `vod_project/vod_project/settings.py`).
+A sophisticated data pipeline that intelligently crawls multiple Video-on-Demand platforms, normalizes content metadata, and exposes unified data through a RESTful API with advanced content matching capabilities.
 
-## Quick start with PostgreSQL (recommended, uses Docker Compose)
+---
 
-1. Start Postgres and Redis (background):
-```bash
-docker compose up -d db redis
+## Architecture
+```mermaid
+graph TB
+    A[VOD Platform 1] --> B[Scrapy Spider]
+    C[VOD Platform 2] --> B
+    D[VOD Platform N] --> B
+    
+    B --> E[Content Processing Pipeline]
+    E --> F[Intelligent Content Matcher]
+    F --> G[Redis Cache]
+    F --> H[PostgreSQL Database]
+    
+    H --> I[Django REST API]
+    I --> J[Client Applications]
+    
+    subgraph "Core Intelligence"
+        F --> K[Exact Matching]
+        F --> L[Fuzzy Logic]
+        F --> M[IMDB ID Matching]
+        F --> N[Title Variations]
+    end
+    
+    subgraph "Data Storage"
+        G
+        H
+    end
+    
+    style F fill:#e1f5fe
+    style H fill:#f3e5f5
+    style I fill:#e8f5e8
 ```
 
-2. Create a Python virtualenv and install dependencies locally (optional for running management commands from host):
-```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-```
+```mermaid
+flowchart LR
+  subgraph Scrapers
+    A1[Filimo Spider] -->|scraped item| B[Scrapy Items]
+    A2[Namava Spider] -->|scraped item| B
+  end
 
-3. Run migrations using the same DATABASE_URL as docker-compose (the settings read DATABASE_URL automatically):
-```bash
-export DATABASE_URL=postgres://voduser:vodpass@localhost:5432/vod
-python api/manage.py migrate
-python api/manage.py createsuperuser  # optional
-```
+  B --> C[PostgreSQLPipeline]
+  B --> R[Redis Cache]
 
-4. Run the development server:
-```bash
-export DATABASE_URL=postgres://voduser:vodpass@localhost:5432/vod
-python api/manage.py runserver 0.0.0.0:8000
+  C -->|get_or_create| M[(Movie / Series)]
+  C -->|create| S[(Source)]
+  C --> G[Genres Table]
+  C --> Cr[Credits Table]
+
+  style Scrapers fill:#f9f,stroke:#333,stroke-width:1px
+  style R fill:#f6f8fa,stroke:#333,stroke-dasharray: 2 2
+
+  subgraph Matching
+    C --> E[EnhancedContentMatcher]
+    E --> M
+    E --> R
+  end
+
+  subgraph API
+    D[Django REST API] --> M
+    D --> R
+    D -->|exposes| Endpoints[/movies, /series, /items/<id>/]
+  end
+
+  DockerCompose["docker-compose (app, db, redis)"] --- Scrapers
+  DockerCompose --- API
+  DockerCompose --- PostgreSQL[(PostgreSQL)]
+  DockerCompose --- R
+
+
 ```
 
 ---
+
+
+### 🔧 Run
+```bash
+git clone ...
+cd vod_scraper
+```
+Then:
+```bash
+make env
+make build
+make up
+```
+then you can enjoy the app. <br />
+
+### 🌐 Endpoints
+
+```bash
+curl http://localhost:8000/movies/
+```
+
+```bash
+curl http://localhost:8000/series/
+```
+```bash
+curl http://localhost:8000/items/<id>/
+```

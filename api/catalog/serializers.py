@@ -6,7 +6,7 @@ from .models import Credit, Movie, Source
 class SourceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Source
-        fields = ("platform", "source_id", "url", "scraped_at")
+        fields = ("platform", "source_id", "url", "created_at")
 
 
 class CreditSerializer(serializers.ModelSerializer):
@@ -22,7 +22,7 @@ class ItemSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Movie
-        fields = ("id", "title", "year", "type", "genres", "sources_count", "platforms")
+        fields = ("id", "title", "title_en", "year", "type", "genres", "sources_count", "platforms")
 
     def get_sources_count(self, obj):
         return obj.sources.count()

@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 
 
 class FilimoSpider(scrapy.Spider):
-    name = "filimo_api"
+    name = "filimo"
     allowed_domains: ClassVar[tuple[str, ...]] = ("api.filimo.com",)
 
     custom_settings = {
@@ -28,7 +28,7 @@ class FilimoSpider(scrapy.Spider):
     # TODO: this is for new movies...
     start_urls = ["https://api.filimo.com/api/fa/v1/movie/movie/list/tagid/1/other_data/movie-new_nocomingsoon"]
 
-    def parse(self, response):
+    def parse(self, response, **kwargs):
         data = response.json()
         included = data.get("included", [])
         movies = [item for item in included if item.get("type") == "movies"]
@@ -37,6 +37,7 @@ class FilimoSpider(scrapy.Spider):
             attr = movie.get("attributes", {})
 
             title = attr.get("movie_title")
+            title_en = attr.get('movie_title_en')
             release_year = self._safe_int(attr.get("pro_year"))
             genres = [
                 c.get("title_en") or c.get("title")
@@ -46,13 +47,14 @@ class FilimoSpider(scrapy.Spider):
             source_id = str(attr.get("movie_id") or attr.get("uid") or attr.get("id"))
 
             yield {
+				"title_en": title_en,
                 "title": title,
                 "release_year": release_year,
                 "type": "movie",
                 "genres": genres,
                 "source_id": source_id,
                 "url": f"https://www.filimo.com/m/{source_id}",
-                "raw_data": movie,  # Store full API response
+                "raw_data": movie,
             }
 
     def _safe_int(self, value):

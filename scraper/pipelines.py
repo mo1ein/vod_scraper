@@ -1,10 +1,9 @@
 import logging
 import os
 import sys
-import time
 
 import django
-from api.catalog.matching_engine import ContentMatcher
+from api.catalog.matching_engine import ContentManager  # NEW: Import ContentManager
 from api.catalog.models import Genre, Movie, Platform, Source
 from django.conf import settings
 from django.db import transaction
@@ -19,8 +18,15 @@ class PostgreSQLPipeline:
 	def __init__(self, redis_client):
 		self.redis = redis_client
 		self.django_setup_done = False
-		self.matcher = None
-		self.stats = {"items_created": 0, "items_updated": 0, "sources_added": 0, "matches_found": 0, "errors": 0}
+		self.content_manager = None
+		self.stats = {
+			"items_created": 0,
+			"items_updated": 0,
+			"sources_added": 0,
+			"matches_found": 0,
+			"errors": 0,
+			"sources_updated": 0
+		}
 		self.genre_cache = {}
 
 	@classmethod
@@ -75,15 +81,23 @@ class PostgreSQLPipeline:
 	def _open_spider_sync(self, spider):
 		"""Synchronous spider opening"""
 
-		self.Item = Movie
+		self.Movie = Movie
 		self.Source = Source
 		self.Genre = Genre
 		self.Platform = Platform
 		self.transaction = transaction
-		self.matcher = ContentMatcher()
 
-		logger.info("PostgreSQL pipeline with content matching opened")
-		self.stats = {"items_created": 0, "items_updated": 0, "sources_added": 0, "matches_found": 0, "errors": 0}
+		self.content_manager = ContentManager()
+
+		logger.info("PostgreSQL pipeline with enhanced content matching opened")
+		self.stats = {
+			"items_created": 0,
+			"items_updated": 0,
+			"sources_added": 0,
+			"sources_updated": 0,
+			"matches_found": 0,
+			"errors": 0
+		}
 
 		# Load genre cache
 		for genre in self.Genre.objects.all():
@@ -98,104 +112,82 @@ class PostgreSQLPipeline:
 		return deferToThread(self._process_item_sync, item, spider)
 
 	def _process_item_sync(self, item, spider):
-		"""Synchronous item processing"""
+		"""Synchronous item processing - COMPLETELY REWRITTEN"""
 		if not self.django_setup_done:
 			self._setup_django()
 
 		try:
 			adapter = ItemAdapter(item)
 
-			with self.transaction.atomic():
-				item_obj = self._find_or_create_item_with_matching(adapter, spider.name)
-				self._create_source(item_obj, adapter, spider.name)
+			# Extract and validate required fields
+			title = adapter.get("title", "").strip()
+			title_en = adapter.get("title_en", "").strip()
+			year = adapter.get("release_year") or adapter.get("year")
+
+			if not title or not year:
+				logger.warning(f"Skipping item missing title or year: {adapter}")
+				return item
+
+			# Prepare genres list
+			genre_objects = self._prepare_genres(adapter.get("genres", []))
+
+			movie, content_created, source_created = self.content_manager.process_scraped_content(
+				title=title,
+				title_en=title_en,
+				release_year=year,
+				movie_type=adapter.get("type", "movie"),
+				platform=self._get_platform_from_spider(spider.name),
+				source_id=adapter.get("source_id"),
+				url=adapter.get("url", ""),
+				raw_payload=adapter.get("raw_data"),
+				genres=genre_objects)
+
+			# Update statistics based on what happened
+			if content_created:
+				self.stats["items_created"] += 1
+				logger.info(f"✅ NEW content created: {movie.title}")
+			else:
+				self.stats["matches_found"] += 1
+				logger.info(f"🔗 EXISTING content matched: {movie.title}")
+
+			if source_created:
+				self.stats["sources_added"] += 1
+				logger.info(f"📺 NEW source linked: {spider.name}")
+			else:
+				self.stats["sources_updated"] += 1
+				logger.info(f"🔄 Source updated: {spider.name}")
+
+			self._update_redis_cache(movie, title, year)
 
 			return item
+
 		except Exception as e:
 			logger.exception(f"Error processing item: {e}")
 			self.stats["errors"] += 1
 			return item
 
-	def _find_or_create_item_with_matching(self, adapter, spider_name):
-		title = adapter.get("title", "").strip()
-		year = adapter.get("release_year") or adapter.get("year")
-
-		if not title or not year:
-			raise ValueError("Missing title or year")
-
-		platform = self._get_platform_from_spider(spider_name)
-		source_id = adapter.get("source_id")
-
-		matching_item = self.matcher.find_matching_item(title, year, platform, source_id)
-
-		if matching_item:
-			self.stats["matches_found"] += 1
-			self.stats["items_updated"] += 1
-			logger.info(f"Content matched: '{title}' -> '{matching_item.title}'")
-			return matching_item
-
-		# Create new movie
-		movie = self.Item.objects.create(
-			title=title,
-			year=year,
-			type=adapter.get("type", "movie"),
-		)
-
-		# Process genres
-		for genre_name in adapter.get("genres", []):
+	def _prepare_genres(self, genre_names):
+		"""Convert genre names to Genre objects"""
+		genre_objects = []
+		for genre_name in genre_names:
 			if genre_name and genre_name.strip():
 				cleaned_genre = genre_name.strip()
 				if cleaned_genre not in self.genre_cache:
 					genre, created = self.Genre.objects.get_or_create(name=cleaned_genre)
 					self.genre_cache[cleaned_genre] = genre
-				movie.genres.add(self.genre_cache[cleaned_genre])
+				genre_objects.append(self.genre_cache[cleaned_genre])
+		return genre_objects
 
-		self.stats["items_created"] += 1
-		logger.info(f"Created new item: {title} ({year})")
-
+	def _update_redis_cache(self, movie, title, year):
+		"""Update Redis cache for future matching"""
 		cache_key = f"match:{title}:{year}"
-		# safe setex with very small retry loop in case Redis fluctuates
-		for attempt in range(2):
-			try:
-				self.redis.setex(cache_key, 3600, str(movie.id))
-				break
-			except redis_exceptions.ConnectionError as e:
-				logger.warning(f"Redis setex failed (attempt {attempt + 1}): {e}")
-				time.sleep(0.1)
-
-		return movie
-
-	def _create_source(self, movie, adapter, spider_name):
-		platform = self._get_platform_from_spider(spider_name)
-		source_id = adapter.get("source_id")
-
-		if not source_id:
-			raise ValueError("Missing source_id")
-
-		source, created = self.Source.objects.get_or_create(
-			platform=platform,
-			source_id=source_id,
-			defaults={
-				"movie": movie,
-				"url": adapter.get("url", ""),
-				"raw_payload": adapter.get("raw_data"),
-			},
-		)
-
-		if created:
-			self.stats["sources_added"] += 1
-			logger.debug(f"Added source: {platform}:{source_id}")
-
-			sources_key = f"item_sources:{movie.id}"
-			# safe incr with retry
-			for attempt in range(2):
-				try:
-					self.redis.incr(sources_key)
-					break
-				except redis_exceptions.ConnectionError as e:
-					logger.warning(f"Redis incr failed (attempt {attempt + 1}): {e}")
-					time.sleep(0.1)
+		try:
+			self.redis.setex(cache_key, 7200, str(movie.id))  # 2 hours cache
+		except redis_exceptions.ConnectionError as e:
+			logger.warning(f"Redis cache update failed: {e}")
 
 	def _get_platform_from_spider(self, spider_name):
+		"""Map spider name to platform"""
 		spider_to_platform = {
 			"filimo": self.Platform.FILIMO,
 			"namava": self.Platform.NAMAVA,

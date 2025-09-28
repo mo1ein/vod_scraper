@@ -110,7 +110,6 @@ def main():
     )
 
     try:
-        # Create crawler process
         process = CrawlerProcess(settings=settings)
 
         logger.info("🕷️ Starting Filimo spider...")
