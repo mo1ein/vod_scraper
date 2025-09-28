@@ -43,7 +43,7 @@ graph TB
 
 ### 🔧 Run
 ```bash
-git clone ...
+git clone https://github.com/mo1ein/vod_scraper.git
 cd vod_scraper
 ```
 Then:
