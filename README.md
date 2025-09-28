@@ -11,67 +11,31 @@ graph TB
     C[VOD Platform 2] --> B
     D[VOD Platform N] --> B
     
-    B --> E[Content Processing Pipeline]
-    E --> F[Intelligent Content Matcher]
-    F --> G[Redis Cache]
-    F --> H[PostgreSQL Database]
-    
-    H --> I[Django REST API]
+    B --> F[Content Matcher]
+    F --> G[Redis]
+    F --> PostgreSQL[(PostgreSQL)]
+    B --> C[Data Pipeline]
+    C[Data Pipeline] --> PostgreSQL[(PostgreSQL)]
+    C[Data Pipeline] --> G[Redis]
+
+
+    PostgreSQL[(PostgreSQL)] --> I[Django REST API]
     I --> J[Client Applications]
     
-    subgraph "Core Intelligence"
+    subgraph "Core match logic"
         F --> K[Exact Matching]
         F --> L[Fuzzy Logic]
-        F --> M[IMDB ID Matching]
         F --> N[Title Variations]
     end
     
     subgraph "Data Storage"
         G
-        H
+        PostgreSQL[(PostgreSQL)]
     end
     
-    style F fill:#e1f5fe
-    style H fill:#f3e5f5
-    style I fill:#e8f5e8
-```
-
-```mermaid
-flowchart LR
-  subgraph Scrapers
-    A1[Filimo Spider] -->|scraped item| B[Scrapy Items]
-    A2[Namava Spider] -->|scraped item| B
-  end
-
-  B --> C[PostgreSQLPipeline]
-  B --> R[Redis Cache]
-
-  C -->|get_or_create| M[(Movie / Series)]
-  C -->|create| S[(Source)]
-  C --> G[Genres Table]
-  C --> Cr[Credits Table]
-
-  style Scrapers fill:#f9f,stroke:#333,stroke-width:1px
-  style R fill:#f6f8fa,stroke:#333,stroke-dasharray: 2 2
-
-  subgraph Matching
-    C --> E[EnhancedContentMatcher]
-    E --> M
-    E --> R
-  end
-
-  subgraph API
-    D[Django REST API] --> M
-    D --> R
-    D -->|exposes| Endpoints[/movies, /series, /items/<id>/]
-  end
-
-  DockerCompose["docker-compose (app, db, redis)"] --- Scrapers
-  DockerCompose --- API
-  DockerCompose --- PostgreSQL[(PostgreSQL)]
-  DockerCompose --- R
-
-
+    style F fill:blue
+    style I fill:#20aa76
+    style PostgreSQL fill:#699eca
 ```
 
 ---
