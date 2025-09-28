@@ -13,14 +13,15 @@ graph TB
     
     B --> F[Content Matcher]
     F --> G[Redis]
-    F --> PostgreSQL[(PostgreSQL)]
+    F ---> PostgreSQL[(PostgreSQL)]
     B --> C[Data Pipeline]
     C[Data Pipeline] --> PostgreSQL[(PostgreSQL)]
     C[Data Pipeline] --> G[Redis]
 
 
-    PostgreSQL[(PostgreSQL)] --> I[Django REST API]
-    I --> J[Client]
+    I --> PostgreSQL[(PostgreSQL)]
+    J[Client] ----> I[Django REST API]
+    
     
     subgraph "Core match logic"
         F --> K[Exact Matching]
