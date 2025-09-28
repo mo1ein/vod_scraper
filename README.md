@@ -52,7 +52,7 @@ make env
 make build
 make up
 ```
-then you can enjoy the app. <br />
+Now you can enjoy the app. <br />
 
 ### 🌐 Endpoints
 
