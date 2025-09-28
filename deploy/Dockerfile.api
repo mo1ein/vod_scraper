@@ -32,57 +32,5 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD curl -f http://localhost:8000/health/ || exit 1
 
-# Default command
 CMD ["/bin/sh", "-c", "python api/manage.py migrate && python api/manage.py runserver 0.0.0.0:8000"]
-
-
-# Build stage
-# FROM python:3.13-alpine as builder
-#
-# RUN apk add --no-cache \
-#     postgresql-dev \
-#     gcc \
-#     musl-dev
-#
-# WORKDIR /app
-#
-# COPY requirements.txt .
-#
-# ADD https://astral.sh/uv/install.sh /uv-install.sh
-# RUN sh /uv-install.sh && rm /uv-install.sh
-# ENV PATH="/root/.cargo/bin:$PATH"
-#
-# # Install dependencies in a virtual environment
-# # RUN python -m venv /opt/venv
-# # ENV PATH="/opt/venv/bin:$PATH"
-# RUN uv pip install --no-cache-dir -r requirements.txt
-#
-# # Final stage
-# FROM python:3.13-alpine
-#
-# RUN apk add --no-cache \
-#     curl \
-#     postgresql-libs \
-#     libstdc++
-#
-# WORKDIR /app
-# COPY . .
-#
-# ENV PYTHONUNBUFFERED=1 \
-#     PYTHONDONTWRITEBYTECODE=1 \
-#     PIP_NO_CACHE_DIR=off \
-#     PIP_DISABLE_PIP_VERSION_CHECK=on \
-#     # TODO: fix this
-#     DATABASE_URL=postgres://voduser:vodpass@db:5432/vod \
-#     REDIS_URL=redis://redis:6379/0 \
-#     DJANGO_SETTINGS_MODULE=api.vod.settings \
-#     DEBUG="false" \
-#     PYTHONPATH="/app"
-#
-# EXPOSE 8000
-#
-# HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-#     CMD curl -f http://localhost:8000/health/ || exit 1
-#
-# CMD ["/bin/sh", "-c", "python api/manage.py migrate && python api/manage.py runserver 0.0.0.0:8000"]
 
